@@ -26,9 +26,9 @@
 // ================================
 // Pin Definitions - Xiao ESP32 S3
 // ================================
-#define SERIAL1_TX_PIN  4    // GPIO4 (D4) -> Meshtastic RX
-#define SERIAL1_RX_PIN  5    // GPIO5 (D5) -> Meshtastic TX
-#define NEOPIXEL_PIN    1    // GPIO1 (D0) - moved from GPIO4 to avoid Serial1 conflict
+#define SERIAL1_TX_PIN  5    // GPIO5 -> Meshtastic RX (matches mesh-detect PCB)
+#define SERIAL1_RX_PIN  6    // GPIO6 -> Meshtastic TX (matches mesh-detect PCB)
+#define NEOPIXEL_PIN    1    // GPIO1 (D0)
 #define NEOPIXEL_COUNT  1
 #define NEOPIXEL_BRIGHTNESS 50
 #define NEOPIXEL_DETECTION_BRIGHTNESS 200
@@ -124,7 +124,7 @@ static void initializeSerial() {
     Serial.println("[MESH-DETECT] USB Serial started");
 
     Serial1.begin(115200, SERIAL_8N1, SERIAL1_RX_PIN, SERIAL1_TX_PIN);
-    Serial.println("[MESH-DETECT] Serial1 (Meshtastic) started on TX=GPIO4, RX=GPIO5");
+    Serial.println("[MESH-DETECT] Serial1 (Meshtastic) started on TX=GPIO5, RX=GPIO6");
 }
 
 static bool isSerialConnected() {
@@ -253,13 +253,23 @@ static void startDetectionFlash() {
 // Meshtastic Serial Output
 // ================================
 static void sendMeshtasticAlert(const String& mac, bool isRedetection) {
+    String msg;
     if (isRedetection) {
-        Serial1.print("Redetection: Device ");
+        msg = "Redetection: Device " + mac;
     } else {
-        Serial1.print("Device Detected: ");
+        msg = "Device Detected: " + mac;
     }
-    Serial1.println(mac.c_str());
-    Serial1.flush();
+
+    // Check buffer space before sending (matches working drone firmwares)
+    if (Serial1.availableForWrite() >= (int)msg.length() + 2) {
+        Serial1.println(msg.c_str());
+        Serial1.flush();
+    } else {
+        if (isSerialConnected()) {
+            Serial.println("[MESH] WARNING: Serial1 buffer full, message dropped");
+        }
+        return;
+    }
 
     if (isSerialConnected()) {
         Serial.printf("[MESH] %s sent: %s\n",
@@ -669,7 +679,7 @@ input[type=text]:focus{outline:none;border-color:#0f0}
 
 <div class="mesh-bar">
 <span><span class="mesh-dot"></span><span class="mesh-ok">MESHTASTIC: SERIAL1 @ 115200</span></span>
-<span style="opacity:.5">TX:GPIO4 RX:GPIO5</span>
+<span style="opacity:.5">TX:GPIO5 RX:GPIO6</span>
 </div>
 
 <form id="configForm" method="POST" action="/save">
@@ -1043,7 +1053,7 @@ static void startScanningMode() {
     Serial.println("  MESH-DETECT - Scanning Mode");
     Serial.printf("  Filters: %d MAC/OUI, %d names\n",
         targetFilters.size(), nameFilters.size());
-    Serial.println("  Meshtastic: Serial1 TX=GPIO4 @ 115200");
+    Serial.println("  Meshtastic: Serial1 TX=GPIO5 RX=GPIO6 @ 115200");
     Serial.println("========================================\n");
 
     for (const TargetFilter& f : targetFilters) {
