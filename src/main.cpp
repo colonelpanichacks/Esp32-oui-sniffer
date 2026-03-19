@@ -898,12 +898,15 @@ static void startConfigMode() {
     Serial.println("  Open: http://192.168.4.1");
     Serial.println("========================================\n");
 
+    // Ensure WiFi is off first
     WiFi.mode(WIFI_OFF);
-    delay(500);
-    WiFi.persistent(false);
-    WiFi.mode(WIFI_AP);
-    delay(200);
+    delay(1000);
 
+    // Start WiFi AP
+    WiFi.mode(WIFI_AP);
+    delay(500);
+
+    // Randomize MAC for privacy
     randomizeMAC();
 
     bool apStarted;
@@ -913,10 +916,10 @@ static void startConfigMode() {
         apStarted = WiFi.softAP(apSSID.c_str());
     }
 
+    delay(2000); // Give AP time to fully initialize
+
     Serial.printf("[CONFIG] AP started: %s | IP: %s\n",
         apStarted ? "OK" : "FAIL", WiFi.softAPIP().toString().c_str());
-
-    delay(1000);
 
     configStartTime = millis();
     lastConfigActivity = millis();
@@ -1169,10 +1172,9 @@ void setup() {
     pinMode(LED_PIN, OUTPUT);
     digitalWrite(LED_PIN, HIGH); // LED off
 
-    // WiFi factory reset (clear stale AP config)
+    // Clean WiFi state for fresh start
     WiFi.mode(WIFI_AP_STA);
     delay(100);
-    esp_wifi_restore();
     WiFi.softAPdisconnect(true);
     WiFi.disconnect(true, true);
     WiFi.mode(WIFI_OFF);
