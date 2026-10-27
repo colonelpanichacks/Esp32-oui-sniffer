@@ -88,3 +88,7 @@ Batch flashing supported — plug in boards one after another.
 ## Author
 
 [colonelpanichacks](https://github.com/colonelpanichacks)
+
+## License
+
+MIT, see [LICENSE](LICENSE).
